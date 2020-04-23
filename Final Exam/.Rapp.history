@@ -1,0 +1,335 @@
+#The proposal density is uniform over a 4 unit interval so the height of the proposal desnity is 0.25. The maximum height of the target density is 0.5 so multiply 0.25 by 2 (A=2) to raise the proposal density above the target density. #
+A = 2#
+real.s = NULL#
+N = 25000#
+#
+for(i in 1:N) {#
+	#Draw a uniform independent random variable and transform it to be within the domain of the given density, 2 <= x <= 6.#
+	x = runif(1) * 4 + 2#
+	#Determine what part of the piecewise function to use based on the value of x and set the numerator equal to the appropriate function and the denominator equal to A times the height of the uniform density over the four unit interval.#
+	if (x <= 3) {#
+		num = (x - 2)/2#
+		denom = A*0.25#
+		}#
+	else {#
+		num = (2 - (x/3))/2#
+		denom = A*0.25#
+		}#
+	#Calculate the probability that the previously generated uniform is from the target density#
+	prob <- num/denom#
+	#Generate a uniform independent random variable to use as a comparison probability: if the probability, prob, that the transformed x uniform could be from the given distribution is greater than the probability represented by this newly generated uniform random variable, select the x transformed uniform and store in real.s#
+	if(runif(1) < prob) {#
+		real.s <- c(real.s,x)#
+	}#
+}#
+hist(real.s)#
+mean(real.s)
+data = read.csv(file.choose(), header=TRUE)
+attach(data)
+data
+x = X4
+x
+p = 0.5#
+b = 1#
+m = mean(x)#
+Y = m + b#
+N = 10000#
+lag = 1#
+burnin = 0#
+#
+#Gibbs function receives six parameters: "x" for the sample data values, "p" for the probability that data value, xi, comes from distribution 1, "Y" for the parameter of distribution 1 (b+m with b=1), "N" for number of realizations, "lag" for determining how many realizations to skip between saves, and "burnin" for detemrining how many realizations to skip before starting to save. Gibbs generates N independent z vectors of indicator variables, N independent means from a Poisson distribution, and N independent probabilities that are each a probability of drawing from distribution 1.#
+gibbs <- function(x,p,Y,N,lag,burnin) {#
+	#obtain length of x#
+	n = length(x)#
+	#Set N to be N*lag+burnin#
+	N <- N*lag + burnin#
+	#Initialize vectors to hold the z vector realizations, m2 realizations, and p realizations#
+	zs = NULL#
+	Ys = NULL#
+	ps = NULL#
+	for(i in 1:N) {#
+	#Calculate the vector of probabilities where each value represents the probabiliy that the corresponding value in the data vector y was drawn from distribution 2#
+	probz1 = (1-p)*Y^(sum(x)-sum(x*z))*exp(-Y*(n-sum(z)+1/10))#
+	probz2 = p*exp(-sum(z))#
+	probz = probz1 + probz2#
+	pvec = probz1/probz#
+	#Calculate the z vector of latent indicator values where each value is either 0 or 1 to indicate which distribution the corresponding value in the data vector x is from - "0" indicates distribution 1 and "1" indicates distribution 2#
+	z = rbinom(n,1,pvec)#
+	#Compute a mean for the mixed model from a gamma distribution using the indicator variable vector z and the data vector x.#
+	xbarz = sum(x*z)/sum(z)#
+	Y = gamma(1,sum(x)-sum(x*z),-Y*(n-sum(z)+1/10))#
+	#Compute a p for the probability that the data value comes from distribution 1#
+	p = rbeta(1,n-sum(z)+1,sum(z)+1)#
+	#if i is greater than burnin and if i is a multiple of the lag, store z, Y, and p#
+    if(i > burnin) {#
+  	  if(i %% lag == 0) {#
+		zs <- c(zs,z)#
+		Ys <- c(Ys,Y)#
+		ps <- c(ps,p)#
+      }#
+     }#
+}#
+#
+    vectors <- list("zs" = zs, "Ys" = Ys, "ps" = ps)#
+    return(vectors)#
+#
+}
+vectors = gibbs(x,p,Y,N,lag,burnin)
+p = 0.5#
+b = 1#
+m = mean(x)#
+Y = m + b#
+N = 10000#
+lag = 1#
+burnin = 0#
+#
+#Gibbs function receives six parameters: "x" for the sample data values, "p" for the probability that data value, xi, comes from distribution 1, "Y" for the parameter of distribution 1 (b+m with b=1), "N" for number of realizations, "lag" for determining how many realizations to skip between saves, and "burnin" for detemrining how many realizations to skip before starting to save. Gibbs generates N independent z vectors of indicator variables, N independent means from a Poisson distribution, and N independent probabilities that are each a probability of drawing from distribution 1.#
+gibbs <- function(x,p,Y,N,lag,burnin) {#
+	#obtain length of x#
+	n = length(x)#
+	#Set N to be N*lag+burnin#
+	N <- N*lag + burnin#
+	#Initialize vectors to hold the z vector realizations, m2 realizations, and p realizations#
+	zs = NULL#
+	Ys = NULL#
+	ps = NULL#
+	for(i in 1:N) {#
+	#Calculate the vector of probabilities where each value represents the probabiliy that the corresponding value in the data vector y was drawn from distribution 2#
+	probz1 = (1-p)*exp(-1)/factorial(x)#
+	probz2 = p*Y^x*exp(-Y)/factorial(x)#
+	probz = probz1 + probz2#
+	pvec = probz1/probz#
+	#Calculate the z vector of latent indicator values where each value is either 0 or 1 to indicate which distribution the corresponding value in the data vector x is from - "0" indicates distribution 1 and "1" indicates distribution 2#
+	z = rbinom(n,1,pvec)#
+	#Compute a mean for the mixed model from a gamma distribution using the indicator variable vector z and the data vector x.#
+	xbarz = sum(x*z)/sum(z)#
+	Y = gamma(1,sum(x)-sum(x*z),-Y*(n-sum(z)+1/10))#
+	#Compute a p for the probability that the data value comes from distribution 1#
+	p = rbeta(1,n-sum(z)+1,sum(z)+1)#
+	#if i is greater than burnin and if i is a multiple of the lag, store z, Y, and p#
+    if(i > burnin) {#
+  	  if(i %% lag == 0) {#
+		zs <- c(zs,z)#
+		Ys <- c(Ys,Y)#
+		ps <- c(ps,p)#
+      }#
+     }#
+}#
+#
+    vectors <- list("zs" = zs, "Ys" = Ys, "ps" = ps)#
+    return(vectors)#
+#
+}
+vectors = gibbs(x,p,Y,N,lag,burnin)
+p = 0.5#
+b = 1#
+m = mean(x)#
+Y = m + b#
+N = 10000#
+lag = 1#
+burnin = 0#
+#
+#Gibbs function receives six parameters: "x" for the sample data values, "p" for the probability that data value, xi, comes from distribution 1, "Y" for the parameter of distribution 1 (b+m with b=1), "N" for number of realizations, "lag" for determining how many realizations to skip between saves, and "burnin" for detemrining how many realizations to skip before starting to save. Gibbs generates N independent z vectors of indicator variables, N independent means from a Poisson distribution, and N independent probabilities that are each a probability of drawing from distribution 1.#
+gibbs <- function(x,p,Y,N,lag,burnin) {#
+	#obtain length of x#
+	n = length(x)#
+	#Set N to be N*lag+burnin#
+	N <- N*lag + burnin#
+	#Initialize vectors to hold the z vector realizations, m2 realizations, and p realizations#
+	zs = NULL#
+	Ys = NULL#
+	ps = NULL#
+	for(i in 1:N) {#
+	#Calculate the vector of probabilities where each value represents the probabiliy that the corresponding value in the data vector y was drawn from distribution 2#
+	probz1 = (1-p)*exp(-1)/factorial(x)#
+	probz2 = p*Y^x*exp(-Y)/factorial(x)#
+	probz = probz1 + probz2#
+	pvec = probz1/probz#
+	#Calculate the z vector of latent indicator values where each value is either 0 or 1 to indicate which distribution the corresponding value in the data vector x is from - "0" indicates distribution 1 and "1" indicates distribution 2#
+	z = rbinom(n,1,pvec)#
+	#Compute a mean for the mixed model from a gamma distribution using the indicator variable vector z and the data vector x.#
+	xbarz = sum(x*z)/sum(z)#
+	Y = gamma(1,(sum(x)-sum(x*z)+1),(1/(n-sum(z)+1/10)))#
+	#Compute a p for the probability that the data value comes from distribution 1#
+	p = rbeta(1,n-sum(z)+1,sum(z)+1)#
+	#if i is greater than burnin and if i is a multiple of the lag, store z, Y, and p#
+    if(i > burnin) {#
+  	  if(i %% lag == 0) {#
+		zs <- c(zs,z)#
+		Ys <- c(Ys,Y)#
+		ps <- c(ps,p)#
+      }#
+     }#
+}#
+#
+    vectors <- list("zs" = zs, "Ys" = Ys, "ps" = ps)#
+    return(vectors)#
+#
+}
+b = 1#
+m = mean(x)#
+Y = m + b#
+N = 10000#
+lag = 1#
+burnin = 0#
+#
+#Gibbs function receives six parameters: "x" for the sample data values, "p" for the probability that data value, xi, comes from distribution 1, "Y" for the parameter of distribution 1 (b+m with b=1), "N" for number of realizations, "lag" for determining how many realizations to skip between saves, and "burnin" for detemrining how many realizations to skip before starting to save. Gibbs generates N independent z vectors of indicator variables, N independent means from a Poisson distribution, and N independent probabilities that are each a probability of drawing from distribution 1.#
+gibbs <- function(x,p,Y,N,lag,burnin) {#
+	#obtain length of x#
+	n = length(x)#
+	#Set N to be N*lag+burnin#
+	N <- N*lag + burnin#
+	#Initialize vectors to hold the z vector realizations, m2 realizations, and p realizations#
+	zs = NULL#
+	Ys = NULL#
+	ps = NULL#
+	for(i in 1:N) {#
+	#Calculate the vector of probabilities where each value represents the probabiliy that the corresponding value in the data vector y was drawn from distribution 2#
+	probz1 = (1-p)*exp(-1)/factorial(x)#
+	probz2 = p*Y^x*exp(-Y)/factorial(x)#
+	probz = probz1 + probz2#
+	pvec = probz1/probz#
+	#Calculate the z vector of latent indicator values where each value is either 0 or 1 to indicate which distribution the corresponding value in the data vector x is from - "0" indicates distribution 1 and "1" indicates distribution 2#
+	z = rbinom(n,1,pvec)#
+	#Compute a mean for the mixed model from a gamma distribution using the indicator variable vector z and the data vector x.#
+	xbarz = sum(x*z)/sum(z)#
+	Y = rgamma(1,(sum(x)-sum(x*z)+1),(1/(n-sum(z)+1/10)))#
+	#Compute a p for the probability that the data value comes from distribution 1#
+	p = rbeta(1,n-sum(z)+1,sum(z)+1)#
+	#if i is greater than burnin and if i is a multiple of the lag, store z, Y, and p#
+    if(i > burnin) {#
+  	  if(i %% lag == 0) {#
+		zs <- c(zs,z)#
+		Ys <- c(Ys,Y)#
+		ps <- c(ps,p)#
+      }#
+     }#
+}#
+#
+    vectors <- list("zs" = zs, "Ys" = Ys, "ps" = ps)#
+    return(vectors)#
+#
+}#
+#
+vectors = gibbs(x,p,Y,N,lag,burnin)
+zs = vectors$zs#
+Ys = vectors$Ys#
+ps = vectors$ps#
+#
+par(mfrow=c(3,2)) #split plotting window into 2 rows and 2 columns#
+ts.plot(Ys,xlab="Iterations") #
+ts.plot(ps,xlab="Iterations") #
+hist(Ys,probability=T, cex.lab=1.5, cex.axis=1.5)#
+hist(ps,probability=T, cex.lab=1.5, cex.axis=1.5)#
+acf(Ys,lag.max=500)#
+acf(ps, lag.max=500)
+p = 0.5#
+b = 1#
+m = mean(x)#
+Y = m + b#
+N = 10000#
+lag = 1#
+burnin = 0#
+#
+#Gibbs function receives six parameters: "x" for the sample data values, "p" for the probability that data value, xi, comes from distribution 1, "Y" for the parameter of distribution 1 (b+m with b=1), "N" for number of realizations, "lag" for determining how many realizations to skip between saves, and "burnin" for detemrining how many realizations to skip before starting to save. Gibbs generates N independent z vectors of indicator variables, N independent means from a Poisson distribution, and N independent probabilities that are each a probability of drawing from distribution 1.#
+gibbs <- function(x,p,Y,N,lag,burnin) {#
+	#obtain length of x#
+	n = length(x)#
+	#Set N to be N*lag+burnin#
+	N <- N*lag + burnin#
+	#Initialize vectors to hold the z vector realizations, m2 realizations, and p realizations#
+	zs = NULL#
+	Ys = NULL#
+	ps = NULL#
+	for(i in 1:N) {#
+	#Calculate the vector of probabilities where each value represents the probabiliy that the corresponding value in the data vector y was drawn from distribution 2#
+	probz1 = (1-p)*exp(-1)/factorial(x)#
+	probz2 = p*Y^x*exp(-Y)/factorial(x)#
+	probz = probz1 + probz2#
+	pvec = probz1/probz#
+	#Calculate the z vector of latent indicator values where each value is either 0 or 1 to indicate which distribution the corresponding value in the data vector x is from - "0" indicates distribution 1 and "1" indicates distribution 2#
+	z = rbinom(n,1,pvec)#
+	#Compute a mean for the mixed model from a gamma distribution using the indicator variable vector z and the data vector x.#
+	xbarz = sum(x*z)/sum(z)#
+	Y = rgamma(1,(sum(x)-sum(x*z)+1),(n-sum(z)+1/10))#
+	#Compute a p for the probability that the data value comes from distribution 1#
+	p = rbeta(1,n-sum(z)+1,sum(z)+1)#
+	#if i is greater than burnin and if i is a multiple of the lag, store z, Y, and p#
+    if(i > burnin) {#
+  	  if(i %% lag == 0) {#
+		zs <- c(zs,z)#
+		Ys <- c(Ys,Y)#
+		ps <- c(ps,p)#
+      }#
+     }#
+}#
+#
+    vectors <- list("zs" = zs, "Ys" = Ys, "ps" = ps)#
+    return(vectors)#
+#
+}
+vectors = gibbs(x,p,Y,N,lag,burnin)
+zs = vectors$zs#
+Ys = vectors$Ys#
+ps = vectors$ps#
+#
+par(mfrow=c(3,2)) #split plotting window into 2 rows and 2 columns#
+ts.plot(Ys,xlab="Iterations") #
+ts.plot(ps,xlab="Iterations") #
+hist(Ys,probability=T, cex.lab=1.5, cex.axis=1.5)#
+hist(ps,probability=T, cex.lab=1.5, cex.axis=1.5)#
+acf(Ys,lag.max=500)#
+acf(ps, lag.max=500)
+vectors = gibbs(x,p,Y,25000,lag,burnin)
+zs = vectors$zs#
+Ys = vectors$Ys#
+ps = vectors$ps#
+#
+par(mfrow=c(3,2)) #split plotting window into 2 rows and 2 columns#
+ts.plot(Ys,xlab="Iterations") #
+ts.plot(ps,xlab="Iterations") #
+hist(Ys,probability=T, cex.lab=1.5, cex.axis=1.5)#
+hist(ps,probability=T, cex.lab=1.5, cex.axis=1.5)#
+acf(Ys,lag.max=500)#
+acf(ps, lag.max=500)
+mean(Ys)
+mean(ps)
+mean(y)
+mean(x)
+x
+sort(x)
+112/11
+length(x)
+73/3
+112+66
+178/23
+178+35
+213/38
+#Convert z to an n column matrix#
+zmat = matrix(zs, ncol=n, byrow=TRUE)#
+#Get column means of matrix zmat#
+zimeans = colMeans(zmat)#
+#
+plot(x,zimeans)
+#Convert z to an n column matrix#
+zmat = matrix(zs, ncol=length(x), byrow=TRUE)#
+#Get column means of matrix zmat#
+zimeans = colMeans(zmat)#
+#
+plot(x,zimeans)
+ms = Ys - 1#
+#
+par(mfrow=c(3,2)) #split plotting window into 2 rows and 2 columns#
+ts.plot(ms,xlab="Iterations") #
+ts.plot(ps,xlab="Iterations") #
+hist(ms,probability=T, cex.lab=1.5, cex.axis=1.5)#
+hist(ps,probability=T, cex.lab=1.5, cex.axis=1.5)#
+acf(ms,lag.max=500)#
+acf(ps, lag.max=500)
+mean(ms)#
+#[1] 3.09346#
+mean(ps)
+quantile(ms, 0.025)#
+quantile(ms, 0.975)#
+quantile(ps, 0.025)#
+quantile(ps, 0.975)
